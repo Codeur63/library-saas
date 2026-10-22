@@ -1,0 +1,454 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum UserRole {
+  STUDENT
+  ADMIN
+  SUPERADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum DocumentVisibility {
+  GLOBAL
+  PROGRAM
+}
+
+enum Semester {
+  S1
+  S2
+  ANNUAL
+}
+
+// ======================================================
+// PROFILES
+// ======================================================
+//
+// Le compte d'authentification réel reste géré par
+// Supabase Auth (auth.users).
+//
+// Profile.id doit correspondre à auth.users.id.
+//
+// Nous n'essayons volontairement pas de gérer auth.users
+// avec Prisma : Supabase en reste propriétaire.
+// ======================================================
+
+model Profile {
+  id                 String        @id @db.Uuid
+  matricule          String        @unique @db.VarChar(50)
+
+  firstName          String        @map("first_name") @db.VarChar(100)
+  lastName           String        @map("last_name") @db.VarChar(100)
+
+  role               UserRole      @default(STUDENT)
+  status             AccountStatus @default(ACTIVE)
+
+  mustChangePassword Boolean       @default(true) @map("must_change_password")
+
+  // Affectation académique
+  programId          String?       @map("program_id") @db.Uuid
+  levelId            String?       @map("level_id") @db.Uuid
+  optionId           String?       @map("option_id") @db.Uuid
+
+  // Activité
+  lastActivityAt     DateTime?     @map("last_activity_at") @db.Timestamptz(6)
+
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  program            Program?      @relation(fields: [programId], references: [id], onDelete: SetNull)
+  level              AcademicLevel? @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  option             ProgramOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
+
+  uploadedDocuments  Document[]    @relation("DocumentUploader")
+  favorites          Favorite[]
+  adminActionLogs    AdminActionLog[]
+
+  @@index([programId])
+  @@index([levelId])
+  @@index([optionId])
+  @@index([status, lastActivityAt])
+
+  @@map("profiles")
+}
+
+// ======================================================
+// FACULTIES
+// ======================================================
+
+model Faculty {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  code        String    @unique @db.VarChar(20)
+  name        String    @unique @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+
+  description String?   @db.Text
+
+  isActive    Boolean   @default(true) @map("is_active")
+
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  programs    Program[]
+
+  @@index([isActive])
+  @@map("faculties")
+}
+
+// ======================================================
+// PROGRAMS / FILIERES
+// ======================================================
+
+model Program {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  facultyId   String   @map("faculty_id") @db.Uuid
+
+  code        String   @unique @db.VarChar(30)
+  name        String   @db.VarChar(255)
+  slug        String   @unique @db.VarChar(255)
+
+  description String?  @db.Text
+
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  faculty     Faculty         @relation(fields: [facultyId], references: [id], onDelete: Restrict)
+
+  options     ProgramOption[]
+  subjects    Subject[]
+
+  students    Profile[]
+
+  restrictedDocuments Document[] @relation("RestrictedProgram")
+
+  @@index([facultyId])
+  @@index([isActive])
+
+  @@unique([facultyId, name])
+
+  @@map("programs")
+}
+
+// ======================================================
+// PROGRAM OPTIONS / SPECIALITES
+// ======================================================
+//
+// Exemple :
+//
+// Sciences Infirmières
+//   ├─ Chirurgie et Bloc opératoire
+//   ├─ Pédiatrie-Néonatalogie
+//   └─ Médecine et Spécialités
+//
+// Option facultative pour les filières qui n'en ont pas.
+// ======================================================
+
+model ProgramOption {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  programId   String   @map("program_id") @db.Uuid
+
+  code        String?  @db.VarChar(30)
+  name        String   @db.VarChar(255)
+  slug        String   @db.VarChar(255)
+
+  description String?  @db.Text
+
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Restrict)
+
+  subjects    Subject[]
+  students    Profile[]
+
+  @@unique([programId, slug])
+
+  @@index([programId])
+  @@index([isActive])
+
+  @@map("program_options")
+}
+
+// ======================================================
+// ACADEMIC LEVELS
+// ======================================================
+//
+// Exemples :
+// L1, L2, L3, M1, M2, CQP...
+//
+// sortOrder évite les tris alphabétiques incorrects.
+// ======================================================
+
+model AcademicLevel {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  code        String   @unique @db.VarChar(30)
+  name        String   @db.VarChar(100)
+
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  subjects    Subject[]
+  students    Profile[]
+
+  @@index([sortOrder])
+  @@index([isActive])
+
+  @@map("academic_levels")
+}
+
+// ======================================================
+// SUBJECTS / MATIERES
+// ======================================================
+
+model Subject {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  programId   String   @map("program_id") @db.Uuid
+  levelId     String   @map("level_id") @db.Uuid
+
+  // Facultatif : seulement si la matière appartient
+  // spécifiquement à une option.
+  optionId    String?  @map("option_id") @db.Uuid
+
+  code        String?  @db.VarChar(50)
+
+  name        String   @db.VarChar(255)
+  slug        String   @db.VarChar(255)
+
+  description String?  @db.Text
+
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  program     Program        @relation(fields: [programId], references: [id], onDelete: Restrict)
+  level       AcademicLevel  @relation(fields: [levelId], references: [id], onDelete: Restrict)
+  option      ProgramOption? @relation(fields: [optionId], references: [id], onDelete: Restrict)
+
+  documents   Document[]
+
+  @@unique([programId, levelId, optionId, slug])
+
+  @@index([programId])
+  @@index([levelId])
+  @@index([optionId])
+  @@index([programId, levelId])
+
+  @@map("subjects")
+}
+
+// ======================================================
+// ACADEMIC YEARS
+// ======================================================
+
+model AcademicYear {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  label       String   @unique @db.VarChar(20)
+
+  startDate   DateTime @map("start_date") @db.Date
+  endDate     DateTime @map("end_date") @db.Date
+
+  isCurrent   Boolean  @default(false) @map("is_current")
+
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  documents   Document[]
+
+  @@index([isCurrent])
+
+  @@map("academic_years")
+}
+
+// ======================================================
+// DOCUMENT CATEGORIES
+// ======================================================
+//
+// Administrable sans modifier le code.
+//
+// Exemples :
+// COURSE
+// TD
+// TP
+// EXAM
+// CORRECTION
+// PROJECT
+// REFERENCE
+// ======================================================
+
+model DocumentCategory {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  code        String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(100)
+
+  description String?  @db.Text
+
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  documents   Document[]
+
+  @@index([sortOrder])
+  @@index([isActive])
+
+  @@map("document_categories")
+}
+
+// ======================================================
+// DOCUMENTS
+// ======================================================
+
+model Document {
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  title           String             @db.VarChar(255)
+  description     String?            @db.Text
+
+  subjectId       String             @map("subject_id") @db.Uuid
+  categoryId      String             @map("category_id") @db.Uuid
+
+  academicYearId  String?            @map("academic_year_id") @db.Uuid
+  semester        Semester?
+
+  // GLOBAL = tous les étudiants authentifiés
+  // PROGRAM = seulement une filière
+  visibility      DocumentVisibility @default(GLOBAL)
+
+  // Requis fonctionnellement lorsque visibility = PROGRAM.
+  accessProgramId String?             @map("access_program_id") @db.Uuid
+
+  // Supabase Storage
+  storageBucket   String             @default("university-documents") @map("storage_bucket") @db.VarChar(100)
+
+  storagePath     String             @unique @map("storage_path") @db.Text
+
+  originalFileName String           @map("original_file_name") @db.Text
+
+  mimeType        String            @map("mime_type") @db.VarChar(150)
+  fileExtension   String            @map("file_extension") @db.VarChar(20)
+
+  // Toujours stocké en octets.
+  fileSize        BigInt            @map("file_size")
+
+  // Optionnel mais utile pour détecter les doublons.
+  fileHash        String?           @map("file_hash") @db.VarChar(128)
+
+  uploadedById    String?           @map("uploaded_by_id") @db.Uuid
+
+  downloadCount   Int               @default(0) @map("download_count")
+
+  isPublished     Boolean           @default(true) @map("is_published")
+
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  subject         Subject           @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  category        DocumentCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  academicYear    AcademicYear?     @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+
+accessProgram Program? @relation("RestrictedProgram",fields: [accessProgramId],references: [id],onDelete: Restrict)
+
+uploadedBy Profile? @relation("DocumentUploader",fields: [uploadedById],references: [id],onDelete: SetNull)
+
+  favorites       Favorite[]
+
+  @@index([subjectId])
+  @@index([categoryId])
+  @@index([academicYearId])
+  @@index([uploadedById])
+
+  @@index([visibility])
+  @@index([accessProgramId])
+
+  @@index([isPublished])
+  @@index([createdAt])
+  @@index([downloadCount])
+
+  // Recherche / filtres fréquents
+  @@index([subjectId, categoryId, createdAt])
+  @@index([visibility, accessProgramId, isPublished])
+
+  @@map("documents")
+}
+
+
+model Favorite {
+  userId     String   @map("user_id") @db.Uuid
+  documentId String   @map("document_id") @db.Uuid
+
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user       Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, documentId])
+
+  @@index([documentId])
+  @@index([userId, createdAt])
+
+  @@map("favorites")
+}
+
+// ======================================================
+// ADMIN ACTION LOGS / AUDIT
+// ======================================================
+//
+// Trace des opérations administratives sensibles (création
+// étudiant, reset, suspension, upload, suppression…).
+// Écriture uniquement côté serveur (service_role), aucune
+// policy RLS ne l'expose aux clients.
+// ======================================================
+
+model AdminActionLog {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  actorId      String   @map("actor_id") @db.Uuid
+  action       String   @db.VarChar(80)
+
+  // Type et identifiant de la ressource cible (ex : student, document)
+  targetType   String?  @map("target_type") @db.VarChar(40)
+  targetId     String?  @map("target_id") @db.Text
+
+  details      Json?
+
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  actor        Profile  @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+
+  @@map("admin_action_logs")
+}

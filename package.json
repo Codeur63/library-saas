@@ -1,0 +1,49 @@
+{
+  "name": "library-saas",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "postinstall": "prisma skills sync || exit 0",
+    "typecheck": "next typegen && tsc --noEmit",
+    "verify:backend": "vite-node --config scripts/verify-backend.vite.config.ts scripts/verify-backend.ts",
+    "smoke": "node --env-file=.env scripts/backend-smoke.mjs",
+    "verify:rls": "node --env-file=.env scripts/verify-rls.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.100",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "ioredis": "^6.0.0",
+    "lucide-react": "^1.8.0",
+    "next": "16.4.2",
+    "pdfjs-dist": "^4.10.38",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.2",
+    "postcss": "8.5.31",
+    "prisma": "7.10.1",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5",
+    "vite-node": "^2.1.9",
+    "vitest": "^2.1.9"
+  }
+}
