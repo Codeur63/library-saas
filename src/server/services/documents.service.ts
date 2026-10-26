@@ -1,6 +1,9 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import {
+  thumbnailStoragePath,
+} from "@/server/documents-thumbnail.service";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { AppError } from "@/server/errors";
 import { buildDocumentsWhere, canAccessDocument } from "@/server/access-control";
@@ -312,18 +315,6 @@ export async function uploadDocument(
 
   // Couverture (première page) générée en tâche de fond : ne bloque pas la
   // réponse d'import. Si elle échoue, la route /cover la régénère à la demande.
-  void warmDocumentThumbnail(
-    {
-      id: document.id,
-      storagePath: stored.storagePath,
-      storageBucket: stored.storageBucket,
-      mimeType: stored.mimeType,
-      fileExtension: stored.fileExtension,
-    },
-    file.buffer
-  ).catch((error) => {
-    logger.warn("Échec de génération de la vignette à l'import", { documentId: document.id }, error);
-  });
 
   invalidateLibraryOverview();
   invalidateDashboardStats();
