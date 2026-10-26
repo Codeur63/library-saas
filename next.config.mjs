@@ -23,6 +23,18 @@ const contentSecurityPolicy = [
   .filter(Boolean)
   .join("; ");
 
+
+outputFileTracingIncludes: {
+  "**/*": [
+    "./node_modules/pg-cloudflare/dist/**",
+    "./node_modules/pg-cloudflare/esm/**"
+  ],
+  "/api/documents/**": [
+    "./node_modules/pdfjs-dist/standard_fonts/**/*"
+  ]
+},
+
+
 const securityHeaders = [
   { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "X-Content-Type-Options", value: "nosniff" },

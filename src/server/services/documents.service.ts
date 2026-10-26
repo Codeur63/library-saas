@@ -13,7 +13,6 @@ import {
 } from "@/server/dto";
 import { logAdminAction } from "@/server/services/admin-log.service";
 import { invalidateDashboardStats, invalidateLibraryOverview } from "@/server/cache";
-import { warmDocumentThumbnail } from "@/server/documents-thumbnail.service";
 import { requestCache } from "@/server/request-cache";
 import { enforceRateLimit, RATE_LIMITS, rateLimitKey } from "@/server/rate-limit";
 import { logger } from "@/server/logger";
@@ -390,9 +389,9 @@ export async function deleteDocument(id: string, currentUser = requireCurrentUse
   // Suppression du fichier physique d'abord, puis des métadonnées. L'objet
   // Storage est retiré en premier car une telle suppression est irréversible,
   // alors qu'une ligne Prisma peut être retentée ultérieurement.
-  await storageService.remove(document.storagePath, document.storageBucket);
   await prisma.document.delete({ where: { id } });
-
+  thumbnailStoragePath(document.id)
+  
   await logAdminAction({
     actorId: user.id,
     action: "document.deleted",

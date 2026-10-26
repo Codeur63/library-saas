@@ -1,5 +1,6 @@
 "use client";
 
+import { generatePdfThumbnail } from "@/lib/pdf-thumbnail.client";
 import { Check, FileUp, Loader2, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -128,10 +129,25 @@ export default function UploadForm({
     };
 
     const formData = new FormData();
+    
     formData.append("file", file);
     formData.append("metadata", JSON.stringify(metadata));
-
+    
     try {
+      // Génération de la couverture dans le navigateur.
+      // Un échec ne bloque pas la publication du PDF.
+      if (file.name.toLowerCase().endsWith(".pdf")) {
+        const thumbnail = await generatePdfThumbnail(file);
+    
+        if (thumbnail) {
+          formData.append(
+            "thumbnail",
+            thumbnail,
+            "cover.png"
+          );
+        }
+      }
+    
       const response = await fetch("/api/documents/upload", {
         method: "POST",
         body: formData,
