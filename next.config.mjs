@@ -24,17 +24,6 @@ const contentSecurityPolicy = [
   .join("; ");
 
 
-outputFileTracingIncludes: {
-  "**/*": [
-    "./node_modules/pg-cloudflare/dist/**",
-    "./node_modules/pg-cloudflare/esm/**"
-  ],
-  "/api/documents/**": [
-    "./node_modules/pdfjs-dist/standard_fonts/**/*"
-  ]
-},
-
-
 const securityHeaders = [
   { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -51,7 +40,13 @@ const nextConfig = {
   // Les polices standard de pdfjs-dist sont lues via fs au runtime : elles
   // doivent être incluses dans la sortie tracée de la route de couverture.
   outputFileTracingIncludes: {
-    "/api/documents/**": ["node_modules/pdfjs-dist/standard_fonts/**/*"],
+    "**/*": [
+      "./node_modules/pg-cloudflare/dist/**",
+      "./node_modules/pg-cloudflare/esm/**"
+    ],
+    "/api/documents/**": [
+      "./node_modules/pdfjs-dist/standard_fonts/**/*"
+    ]
   },
   async headers() {
     return [
