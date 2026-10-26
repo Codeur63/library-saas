@@ -50,7 +50,7 @@ export async function generatePdfThumbnail(
       canvas.width,
       canvas.height
     );
-
+ 
     await page.render({
       canvasContext: context,
       viewport,
