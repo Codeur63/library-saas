@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "postinstall": "prisma skills sync || exit 0",
+    "postinstall": "prisma generate",
     "typecheck": "next typegen && tsc --noEmit",
     "verify:backend": "vite-node --config scripts/verify-backend.vite.config.ts scripts/verify-backend.ts",
     "smoke": "node --env-file=.env scripts/backend-smoke.mjs",
