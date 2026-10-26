@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
+    "dev": "next dev",
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
@@ -13,10 +13,15 @@
     "typecheck": "next typegen && tsc --noEmit",
     "verify:backend": "vite-node --config scripts/verify-backend.vite.config.ts scripts/verify-backend.ts",
     "smoke": "node --env-file=.env scripts/backend-smoke.mjs",
-    "verify:rls": "node --env-file=.env scripts/verify-rls.mjs"
+    "verify:rls": "node --env-file=.env scripts/verify-rls.mjs",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.100",
+    "@opennextjs/cloudflare": "^1.20.13",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "@supabase/ssr": "^0.12.7",
@@ -27,6 +32,7 @@
     "lucide-react": "^1.8.0",
     "next": "16.4.2",
     "pdfjs-dist": "^4.10.38",
+    "pg-cloudflare": "^1.4.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "^0.0.1",
@@ -44,6 +50,7 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vite-node": "^2.1.9",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "wrangler": "^4.152.0"
   }
 }
