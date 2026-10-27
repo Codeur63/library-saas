@@ -2,6 +2,9 @@
   "name": "library-saas",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "build": "next build",
     "dev": "next dev",
@@ -11,7 +14,7 @@
     "test:watch": "vitest",
     "postinstall": "prisma generate",
     "typecheck": "next typegen && tsc --noEmit",
-    "verify:backend": "vite-node --config scripts/verify-backend.vite.config.ts scripts/verify-backend.ts",
+    "verify:backend": "vite-node --config scripts/verify-backend.vite.config.mts scripts/verify-backend.ts",
     "smoke": "node --env-file=.env scripts/backend-smoke.mjs",
     "verify:rls": "node --env-file=.env scripts/verify-rls.mjs",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
@@ -42,14 +45,20 @@
     "@types/node": "^20",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "esbuild": "^0.28.2",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.2",
     "postcss": "8.5.31",
     "prisma": "7.10.1",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
-    "vite-node": "^2.1.9",
-    "vitest": "^2.1.9",
-    "wrangler": "^4.152.0"
+    "vite-node": "^6.0.0",
+    "vitest": "^4.1.12",
+    "wrangler": "^4.153.0"
+  },
+  "overrides": {
+    "@node-minify/core": {
+      "glob": "10.5.0"
+    }
   }
 }

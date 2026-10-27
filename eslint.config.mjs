@@ -11,5 +11,14 @@ export default defineConfig([
       "react-hooks/set-state-in-effect": "off",
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "generated/**", "scripts/**", "next-env.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    ".open-next/**",
+    ".wrangler/**",
+    "out/**",
+    "build/**",
+    "generated/**",
+    "scripts/**",
+    "next-env.d.ts",
+  ]),
 ]);

@@ -12,9 +12,9 @@
 		"binding": "ASSETS"
 	},
 	"observability": {
-    "enabled": false,
+    "enabled": true,
     "head_sampling_rate": 1,
-    "redact_query_string": false,
+    "redact_query_string": true,
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,

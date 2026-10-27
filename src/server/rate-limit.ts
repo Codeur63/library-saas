@@ -192,11 +192,17 @@ export function rateLimitKey(...parts: Array<string | number | null | undefined>
 }
 
 /**
- * Adresse du client derrière le proxy inverse.
- * `x-forwarded-for` doit être fourni/écrasé par l'hébergeur : s'il est exposé
- * directement au client, il est falsifiable (voir README / runbook déploiement).
+ * Adresse du client derrière l'hébergeur.
+ *
+ * Sur Cloudflare, `CF-Connecting-IP` est défini par la plateforme et non
+ * falsifiable par le client : il est prioritaire. Les en-têtes de proxy
+ * classiques restent un repli pour le développement et un déploiement Node
+ * (le reverse proxy doit alors les écraser).
  */
 export function clientIp(headers: { get(name: string): string | null }): string {
+  const cfConnectingIp = headers.get("cf-connecting-ip")?.trim();
+  if (cfConnectingIp) return cfConnectingIp;
+
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) {
     const first = forwarded.split(",")[0]?.trim();

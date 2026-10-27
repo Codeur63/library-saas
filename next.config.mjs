@@ -34,18 +34,13 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
-  // Modules natifs/ESM utilisés côté serveur uniquement pour rasteriser la
-  // première page des PDF : à ne pas bundler par Turbopack.
-  serverExternalPackages: ["@napi-rs/canvas", "pdfjs-dist"],
-  // Les polices standard de pdfjs-dist sont lues via fs au runtime : elles
-  // doivent être incluses dans la sortie tracée de la route de couverture.
+  // Modules natifs/ESM à ne pas bundler par Turbopack côté serveur.
+  // pdfjs-dist est réservé au client (génération de miniature dans le
+  // navigateur) et ne doit pas figurer ici.
   outputFileTracingIncludes: {
     "**/*": [
       "./node_modules/pg-cloudflare/dist/**",
       "./node_modules/pg-cloudflare/esm/**"
-    ],
-    "/api/documents/**": [
-      "./node_modules/pdfjs-dist/standard_fonts/**/*"
     ]
   },
   async headers() {

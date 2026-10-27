@@ -41,8 +41,8 @@ export const env = {
 
 export const databaseUrl = required("DATABASE_URL");
 
-/** Taille maximale du pool de connexions Prisma (par instance). */
-export const databasePoolMax = requiredNumber("DATABASE_POOL_MAX", 10);
+/** Taille maximale du pool de connexions Prisma (par instance/isolate). */
+export const databasePoolMax = requiredNumber("DATABASE_POOL_MAX", 2);
 
 const KNOWN_WEAK_STUDENT_PASSWORD = "UPAC0000";
 const MIN_CRON_SECRET_LENGTH = 32;
@@ -75,7 +75,7 @@ if (isProduction) {
   }
   if (!env.redisUrl) {
     logger.warn(
-      "REDIS_URL absent : rate-limit en mémoire. En production multi-instances, configurer Redis pour un quota partagé."
+      "REDIS_URL absent : rate-limit en mémoire par isolate. Configurer un backend partagé (Redis HTTP/Durable Object) pour un quota global."
     );
   }
   if (!env.errorWebhookUrl) {
@@ -115,7 +115,7 @@ export function assertProductionConfig(): void {
   }
 
   if (!env.redisUrl) {
-    logger.warn("Configuration : REDIS_URL absente (rate-limit limité à une instance).");
+    logger.warn("Configuration : REDIS_URL absente (rate-limit limité à un isolate). Voir docs/adr/0003-rate-limiting.md.");
   }
   if (!env.errorWebhookUrl) {
     logger.warn("Configuration : ERROR_WEBHOOK_URL absente (pas d'alerting externe).");

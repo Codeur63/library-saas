@@ -2,7 +2,9 @@
 //   - client "anon" (clé publishable) + session d'un étudiant réel
 //   - lecture profils / documents / référentiels, favoris
 //   - vérifie : 1ère connexion bloquée, visibilité GLOBAL/PROGRAM, is_published,
-//     favoris strictement personnels, aucun accès anon.
+//     favoris strictement personnels, aucun accès anon direct.
+//   Le catalogue public passe par Prisma (VIEWER public applicatif), pas par ce
+//   client anonyme : RLS reste volontairement plus stricte que l'UI publique.
 // Exécution :  node --env-file=.env scripts/verify-rls.mjs
 
 import { createClient } from "@supabase/supabase-js";
