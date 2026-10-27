@@ -32,6 +32,17 @@ export interface DocumentAccessInfo {
   accessProgram: { id: string } | null;
 }
 
+/**
+ * Visiteur non authentifié : compte actif fictif sans filière.
+ * Il ne peut lire que les documents publiés en visibilité GLOBAL.
+ */
+export const PUBLIC_VIEWER: DocumentViewer = {
+  role: "STUDENT",
+  programId: null,
+  status: "ACTIVE",
+  mustChangePassword: false,
+};
+
 function isAdmin(viewer: Pick<DocumentViewer, "role">): boolean {
   return viewer.role === "ADMIN" || viewer.role === "SUPERADMIN";
 }
@@ -49,6 +60,7 @@ export function canAccessDocument(
   if (viewer.status !== "ACTIVE" || viewer.mustChangePassword) return false;
   if (!document.isPublished) return isAdmin(viewer);
   if (document.visibility === "GLOBAL") return true;
+  if (viewer.programId === null) return isAdmin(viewer);
   return isAdmin(viewer) || document.accessProgram?.id === viewer.programId;
 }
 
@@ -71,15 +83,17 @@ export function buildDocumentsWhere(
 
   const conditions: Prisma.DocumentWhereInput[] = [];
 
-  // Un étudiant ne voit que les documents publiés ET GLOBAL ou de sa filière.
+  // Un visiteur non authentifié (ou un étudiant sans filière) ne voit que les
+  // documents publiés GLOBAL ; un étudiant voit en plus ceux de sa filière.
   if (!admin) {
+    const visibilityConditions: Prisma.DocumentWhereInput[] = [{ visibility: "GLOBAL" }];
+    if (viewer.programId !== null) {
+      visibilityConditions.push({
+        AND: [{ visibility: "PROGRAM" }, { accessProgramId: viewer.programId }],
+      });
+    }
     conditions.push({ isPublished: true });
-    conditions.push({
-      OR: [
-        { visibility: "GLOBAL" },
-        { AND: [{ visibility: "PROGRAM" }, { accessProgramId: viewer.programId }] },
-      ],
-    });
+    conditions.push({ OR: visibilityConditions });
   }
 
   // Recherche (titre, description, matière, nom de fichier).

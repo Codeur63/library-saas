@@ -1,8 +1,8 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { assertCanUseLibrary, requireCurrentUser } from "@/server/current-user";
-import { buildDocumentsWhere } from "@/server/access-control";
+import { assertCanUseLibrary, getCurrentUser } from "@/server/current-user";
+import { buildDocumentsWhere, PUBLIC_VIEWER } from "@/server/access-control";
 import { LIBRARY_OVERVIEW_TAG } from "@/server/cache-tags";
 import { cached } from "@/server/cache";
 import { listDocuments } from "@/server/services/documents.service";
@@ -29,25 +29,26 @@ const loadOverviewAggregates = cached(
 );
 
 /**
- * Vue d'ensemble publique de la bibliothèque (documents accessibles à
- * l'utilisateur connecté) : totaux, derniers ajouts, répartition par
- * catégorie/matière/filière.
+ * Vue d'ensemble publique de la bibliothèque : totaux, derniers ajouts,
+ * répartition par catégorie/matière/filière. Un visiteur non authentifié ne
+ * voit que les documents publiés GLOBAL.
  *
  * Les compteurs sont calculés par agrégats SQL (groupBy, mémoïsés) et non en
  * chargeant tous les documents en mémoire.
  */
 export async function getLibraryOverview(
-  currentUser = requireCurrentUser
+  currentUser = getCurrentUser
 ): Promise<LibraryOverview> {
   const user = await currentUser();
-  assertCanUseLibrary(user);
+  if (user) assertCanUseLibrary(user);
 
+  const viewer = user ?? PUBLIC_VIEWER;
   const asUser = () => Promise.resolve(user);
 
   const [recentPage, catalog, { categoryGroups, subjectGroups }] = await Promise.all([
     listDocuments({ page: 1, pageSize: 5, sort: "newest" }, asUser),
     getCatalog(asUser),
-    loadOverviewAggregates(user.role, user.programId),
+    loadOverviewAggregates(viewer.role, viewer.programId),
   ]);
 
   const categoryCounts = new Map(categoryGroups.map((group) => [group.categoryId, group._count._all]));

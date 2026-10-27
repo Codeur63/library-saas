@@ -6,16 +6,17 @@ import {
   type ThumbnailSource,
 } from "@/server/documents-thumbnail.service";
 import { errorResponse } from "@/server/http";
-import { requireAccessibleDocument } from "@/server/services/documents.service";
+import { getViewableDocument } from "@/server/services/documents.service";
 
 export const runtime = "nodejs";
 
 /**
  * GET /api/documents/[id]/cover
  * Renvoie la première page du document (PDF) sous forme de PNG, pour l'affichage
- * des cartes de la bibliothèque. Même contrôle d'accès que le téléchargement
- * (délégué à `requireAccessibleDocument`) ; la miniature est générée une fois
- * puis mise en cache dans Storage.
+ * des cartes de la bibliothèque. Les documents publiés GLOBAL sont visibles
+ * publiquement ; les autres conservent le contrôle d'accès authentifié
+ * (délégué à `getViewableDocument`) ; la miniature est générée une fois puis
+ * mise en cache dans Storage.
  */
 export async function GET(
   _request: Request,
@@ -23,7 +24,7 @@ export async function GET(
 ): Promise<Response> {
   try {
     const { id } = await params;
-    const document = await requireAccessibleDocument(id);
+    const document = await getViewableDocument(id);
 
     if (!isRenderablePdf(document.mimeType, document.fileExtension)) {
       return NextResponse.json({ error: "Aucun aperçu disponible pour ce format." }, { status: 404 });
@@ -46,8 +47,12 @@ export async function GET(
       headers: {
         "Content-Type": "image/png",
         "Content-Length": String(png.length),
-        // Dérivé immuable d'un document immuable, mais réservé aux authentifiés.
-        "Cache-Control": "private, max-age=2592000, immutable",
+        // Dérivé immuable d'un document immuable. Cache partagé uniquement
+        // pour les documents GLOBAL publiés (visibles sans connexion).
+        "Cache-Control":
+          document.isPublished && document.visibility === "GLOBAL"
+            ? "public, max-age=2592000, immutable"
+            : "private, max-age=2592000, immutable",
       },
     });
   } catch (error) {

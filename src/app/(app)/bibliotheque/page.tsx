@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import Breadcrumb from "@/components/layout/breadcrumb";
@@ -7,7 +6,6 @@ import { LIBRARY_PAGE_SIZE } from "@/constants/library";
 import Library from "@/features/library/components/library";
 import { buildFilterOptions } from "@/features/library/lib/options";
 import { parseLibrarySearchParams } from "@/features/library/lib/url";
-import { getCurrentUser } from "@/server/current-user";
 import { getCatalog } from "@/server/services/catalog.service";
 import { listDocuments } from "@/server/services/documents.service";
 import type { DocumentQueryInput } from "@/server/dto";
@@ -25,11 +23,6 @@ export const metadata: Metadata = {
 };
 
 export default async function BibliothequePage({ searchParams }: BibliothequePageProps) {
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect(`${ROUTES.login}?next=${encodeURIComponent(ROUTES.bibliotheque)}`);
-  }
-
   const initial = parseLibrarySearchParams(await searchParams);
   const query: DocumentQueryInput = {
     q: initial.query || undefined,

@@ -1,9 +1,12 @@
 "use client";
 
 import { Check, Download, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
+import { ROUTES } from "@/constants/routes";
+import { useSession } from "@/features/auth/components/session-provider";
 
 export default function DownloadButton({
   documentId,
@@ -22,6 +25,8 @@ export default function DownloadButton({
   fileName?: string;
   icon?: boolean;
 }) {
+  const router = useRouter();
+  const { profile, initialized } = useSession();
   const [state, setState] = useState<"idle" | "loading" | "done">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -32,7 +37,14 @@ export default function DownloadButton({
   }, []);
 
   const handleDownload = () => {
-    if (state !== "idle") return;
+    if (state !== "idle" || !initialized) return;
+
+    // Le catalogue est public, mais le téléchargement exige une session.
+    if (!profile) {
+      const next = `${window.location.pathname}${window.location.search}`;
+      router.push(`${ROUTES.login}?next=${encodeURIComponent(next)}`);
+      return;
+    }
 
     const anchor = document.createElement("a");
     anchor.href = `/api/documents/${documentId}/download`;

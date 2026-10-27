@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildDocumentsWhere,
   canAccessDocument,
+  PUBLIC_VIEWER,
   type DocumentAccessInfo,
   type DocumentViewer,
 } from "@/server/access-control";
@@ -114,5 +116,20 @@ describe("parité canAccessDocument (TS) ↔ can_access_document (RLS)", () => {
     expect(canAccessDocument(student, makeDocument(true, "PROGRAM", false))).toBe(false);
     expect(canAccessDocument(student, makeDocument(true, "GLOBAL", false))).toBe(true);
     expect(canAccessDocument(student, makeDocument(false, "GLOBAL", true))).toBe(false);
+  });
+});
+
+describe("visiteur non authentifié", () => {
+  it("ne voit que les documents publiés GLOBAL", () => {
+    expect(canAccessDocument(PUBLIC_VIEWER, makeDocument(true, "GLOBAL", true))).toBe(true);
+    expect(canAccessDocument(PUBLIC_VIEWER, makeDocument(false, "GLOBAL", true))).toBe(false);
+    expect(canAccessDocument(PUBLIC_VIEWER, makeDocument(true, "PROGRAM", true))).toBe(false);
+    expect(canAccessDocument(PUBLIC_VIEWER, makeDocument(true, "PROGRAM", false))).toBe(false);
+  });
+
+  it("filtre la liste publique sur les seuls documents GLOBAL publiés", () => {
+    expect(buildDocumentsWhere({}, PUBLIC_VIEWER)).toEqual({
+      AND: [{ isPublished: true }, { OR: [{ visibility: "GLOBAL" }] }],
+    });
   });
 });

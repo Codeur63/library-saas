@@ -4,10 +4,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { publicEnv } from "@/lib/env-public";
 import { REQUEST_ID_HEADER } from "@/lib/request-id";
 
+// Catalogue (bibliothèque, filières, fiches document) volontairement public.
+// Seules les actions personnelles ou d'administration exigent une session.
 const PROTECTED_PATHS = [
-  "/bibliotheque",
-  "/documents",
-  "/filieres",
   "/favoris",
   "/upload",
   "/dashboard",

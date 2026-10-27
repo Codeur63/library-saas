@@ -6,8 +6,8 @@ import {
 } from "@/server/documents-thumbnail.service";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { AppError } from "@/server/errors";
-import { buildDocumentsWhere, canAccessDocument } from "@/server/access-control";
-import { assertAdmin, assertCanUseLibrary, requireCurrentUser } from "@/server/current-user";
+import { buildDocumentsWhere, canAccessDocument, PUBLIC_VIEWER } from "@/server/access-control";
+import { assertAdmin, assertCanUseLibrary, getCurrentUser, requireCurrentUser } from "@/server/current-user";
 import { storageService } from "@/server/storage.service";
 import {
   type CreateDocumentInput,
@@ -115,17 +115,39 @@ export async function requireAccessibleDocument(
   return document;
 }
 
+/**
+ * Variante publique : un visiteur non authentifié peut consulter les documents
+ * publiés GLOBAL. Les utilisateurs connectés conservent leurs règles d'accès.
+ */
+export async function getViewableDocument(
+  id: string,
+  currentUser = getCurrentUser
+): Promise<DocumentWithRelations> {
+  const user = await currentUser();
+  if (user) assertCanUseLibrary(user);
+
+  const document = await getDocumentById(id);
+  if (!document) throw new AppError("DOCUMENT_NOT_FOUND", "Document introuvable.", 404);
+
+  const viewer = user ?? PUBLIC_VIEWER;
+  if (!canAccessDocument(viewer, document)) {
+    if (!user) throw new AppError("DOCUMENT_NOT_FOUND", "Document introuvable.", 404);
+    throw new AppError("PROGRAM_ACCESS_DENIED", "Accès refusé à ce document.", 403);
+  }
+
+  return document;
+}
+
 export async function listDocuments(
   query: DocumentQueryInput,
-  currentUser = requireCurrentUser
+  currentUser = getCurrentUser
 ): Promise<Paginated<LibraryDocument>> {
   const user = await currentUser();
-  if (!user) throw new AppError("UNAUTHORIZED", "Vous devez être connecté.", 401);
-  assertCanUseLibrary(user);
+  if (user) assertCanUseLibrary(user);
 
   const page = query.page;
   const pageSize = query.pageSize;
-  const where = buildDocumentsWhere(query, user);
+  const where = buildDocumentsWhere(query, user ?? PUBLIC_VIEWER);
 
   const orderBy = (() => {
     switch (query.sort) {
@@ -192,8 +214,8 @@ export async function listMyDocuments(
   };
 }
 
-export const getDocument = requestCache(async (id: string, currentUser = requireCurrentUser) => {
-  const document = await requireAccessibleDocument(id, currentUser);
+export const getDocument = requestCache(async (id: string, currentUser = getCurrentUser) => {
+  const document = await getViewableDocument(id, currentUser);
   return serializeDocument(document);
 });
 

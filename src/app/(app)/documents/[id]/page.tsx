@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FileText } from "lucide-react";
+
+import { ROUTES, documentRoute } from "@/constants/routes";
 
 import DocumentRow from "@/features/documents/components/document-row";
 import DocumentCoverImage from "@/features/documents/components/document-cover-image";
 import DownloadButton from "@/features/documents/components/download-button";
 import DownloadCount from "@/features/documents/components/download-count";
 import FavoriteButton from "@/features/documents/components/favorite-button";
+import { getCurrentUser } from "@/server/current-user";
 import { getDocument, getDocumentSignedUrl, listDocuments } from "@/server/services/documents.service";
 import { AppError } from "@/server/errors";
 import { formatBytes, formatFrenchDate } from "@/utils/format";
@@ -29,23 +33,27 @@ export async function generateMetadata({ params }: DocumentPageProps): Promise<M
 }
 
 export default async function DocumentPage({ params }: DocumentPageProps) {
+  const user = await getCurrentUser();
   const { id } = await params;
   let document;
   try {
-    document = await getDocument(id);
+    document = await getDocument(id, async () => user);
   } catch (error) {
     if (error instanceof AppError) notFound();
     throw error;
   }
 
   const [relatedPage, signed] = await Promise.all([
-    listDocuments({
-      programId: document.subject.program.id,
-      page: 1,
-      pageSize: 6,
-      sort: "newest",
-    }),
-    getDocumentSignedUrl(document.id).catch(() => null),
+    listDocuments(
+      {
+        programId: document.subject.program.id,
+        page: 1,
+        pageSize: 6,
+        sort: "newest",
+      },
+      async () => user
+    ),
+    user ? getDocumentSignedUrl(document.id).catch(() => null) : Promise.resolve(null),
   ]);
 
   const related = relatedPage.items.filter((item) => item.id !== document.id);
@@ -121,7 +129,19 @@ export default async function DocumentPage({ params }: DocumentPageProps) {
             />
           ) : (
             <p className="px-4 py-16 text-center text-sm text-text-secondary">
-              Aperçu indisponible. Vous pouvez télécharger le document.
+              {user ? (
+                "Aperçu indisponible. Vous pouvez télécharger le document."
+              ) : (
+                <>
+                  Connectez-vous pour prévisualiser et télécharger ce document.{" "}
+                  <Link
+                    href={`${ROUTES.login}?next=${encodeURIComponent(documentRoute(document.id))}`}
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    Se connecter
+                  </Link>
+                </>
+              )}
             </p>
           )}
         </div>

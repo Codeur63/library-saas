@@ -2,7 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/server/errors";
-import { assertCanUseLibrary, requireLibraryUser } from "@/server/current-user";
+import { assertCanUseLibrary, getCurrentUser, requireLibraryUser } from "@/server/current-user";
 import { REFERENCE_CATALOG_TAG } from "@/server/cache-tags";
 import { cached } from "@/server/cache";
 
@@ -46,12 +46,12 @@ const getCachedCatalog = cached(readCatalog, ["reference-catalog"], {
 
 /**
  * Données de référence pour les filtres et formulaires.
- * Lecture seule, disponible pour tout utilisateur de la bibliothèque (RLS).
+ * Lecture seule, publique : nécessaire pour afficher le catalogue aux visiteurs
+ * non authentifiés. Un compte connecté doit rester en règle.
  */
-export async function getCatalog(currentUser = requireLibraryUser) {
+export async function getCatalog(currentUser = getCurrentUser) {
   const user = await currentUser();
-  if (!user) throw new AppError("UNAUTHORIZED", "Vous devez être connecté.", 401);
-  assertCanUseLibrary(user);
+  if (user) assertCanUseLibrary(user);
 
   return getCachedCatalog();
 }
