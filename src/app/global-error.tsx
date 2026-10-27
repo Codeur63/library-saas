@@ -2,21 +2,15 @@
 
 import RouteError from "@/components/feedback/route-error";
 
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function GlobalError({ reset }: { reset: () => void }) {
   return (
     <html lang="fr">
-      <body>
+      <body className="min-h-screen bg-background text-foreground antialiased">
         <RouteError
-          error={error}
           reset={reset}
+          className="min-h-screen"
           title="Application momentanément indisponible"
-          description="Une erreur critique est survenue. Rechargez la page ou réessayez dans un instant."
+          description="Une erreur inattendue est survenue. Rechargez la page ou réessayez dans un instant."
         />
       </body>
     </html>

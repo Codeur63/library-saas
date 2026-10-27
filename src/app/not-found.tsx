@@ -1,30 +1,61 @@
+import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
-import { buttonVariants } from "@/components/ui/button";
+import NotFoundView from "@/components/feedback/not-found-view";
 import { ROUTES } from "@/constants/routes";
-import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "Page introuvable — Upac Library",
+  description:
+    "La page demandée est introuvable. Explorez la bibliothèque numérique de l’Université Protestante d’Afrique Centrale.",
+};
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-[70vh] items-center justify-center px-4">
-      <div className="text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-text-muted">
-          404
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="border-b border-border">
+        <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center justify-between px-4 sm:px-6">
+          <Link
+            href={ROUTES.home}
+            className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="Upac Library — accueil"
+          >
+            <Image
+              src="/logo-Upac.png"
+              alt=""
+              width={40}
+              height={40}
+              className="h-10 w-10 object-contain"
+              priority
+            />
+            <span className="flex flex-col leading-tight">
+              <span className="text-sm font-semibold text-foreground">
+                University UPAC
+              </span>
+              <span className="text-xs text-text-muted">
+                Bibliothèque numérique
+              </span>
+            </span>
+          </Link>
+          <Link
+            href={ROUTES.bibliotheque}
+            className="rounded-md text-sm font-medium text-text-secondary transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            Bibliothèque
+          </Link>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        <NotFoundView />
+      </main>
+
+      <footer className="border-t border-border">
+        <p className="mx-auto w-full max-w-[1280px] px-4 py-6 text-xs text-text-muted sm:px-6">
+          Université Protestante d’Afrique Centrale — Bibliothèque numérique
         </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
-          Cette page n’existe pas
-        </h1>
-        <p className="mx-auto mt-3 max-w-[50ch] text-base text-text-secondary">
-          Le document ou la page recherchée n’est pas disponible. Vérifiez
-          l’adresse ou explorez la bibliothèque.
-        </p>
-        <Link
-          href={ROUTES.bibliotheque}
-          className={cn(buttonVariants({ variant: "secondary" }), "mt-6")}
-        >
-          Aller à la bibliothèque
-        </Link>
-      </div>
+      </footer>
     </div>
   );
 }
